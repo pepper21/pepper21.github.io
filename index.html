@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Simple 15 puzzle</title>
+    <style>
+        div {
+            width: 456px;
+            height: 500px;
+            border: solid 1px transparent;
+        }
+        div > div {
+            position: absolute; /* абсолютное позиционирование для обеспечения движения именно div'ов, а не надписей на них */
+            display: inline-block;
+            width: 100px;
+            height: 100px;
+            border: solid 1px gray;
+            text-align: center;
+            font: bold 36px/100px Arial,sans;
+            border-radius: 10px;
+            background-color: #f5efa9;
+            transition: 0.1s left cubic-bezier(0.25, 0.1, 0.25, 1.0), /* 0.1 секунды, потому что если нажать на элемент повторно,
+            пока он еще движется, означает забагать его */
+            top 0.1s cubic-bezier(0.25, 0.1, 0.25, 1.0)
+        }
+        button {
+            position: absolute;
+            left: 215px;
+            top: 500px;
+            border-radius:  5px;
+            background-color: #f1f5e3;
+        }
+    </style>
+</head>
+<body>
+<button onclick="document.location.reload()">New game</button>
+<label>Количество ходов:</label>
+<label id = moveCounter></label>
+</body>
+<script>
+    var order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+    function compareRandom() { // для сравнения
+        return Math.random() - 0.5;
+    }
+    function solvable(currentOrder) { // решаема ли рандомная позиция?
+        for (var i = 1; i < currentOrder.length - 1; i++)
+             var kDisorder = 0;
+        for (var j = i - 1; j >= 0; j--) {
+            if (currentOrder[j] > currentOrder[i])
+                kDisorder++;
+        }
+        return !(kDisorder % 2); //если число четное, пазл решаемый
+    }
+    function draw() {
+        var randomOrder = order.sort(compareRandom).concat(16); // сортируем и добавляем в конец элемент, который будет пустым
+        // 16, а не 0 для проверки на окончание
+        if (!solvable(randomOrder)) { // если позиция не решаема, просто делаем одну перестановку
+            var temp = randomOrder[0];
+            randomOrder[0] = randomOrder[1];
+            randomOrder[1] = temp;
+            return randomOrder;
+        }
+        for (var j = 0; j < 16; j++) { // раздаем номера фишкам
+            var tile = document.getElementById("div" + (j + 1));
+            tile.innerHTML = randomOrder[j];
+            document.getElementById("div16").style.visibility = 'hidden';
+        }
+    }
+    window.onload = function () { // наверное, это bad practice - пихать всё подряд в onload? Но так уж вышло
+        var box = document.body.appendChild(document.createElement('div')); //создаем родителя
+        var elements = []; // массив потомков
+        for (var j = 0; j < 16; j++) {
+            var element = document.createElement('div');
+            elements.push(element);
+            elements[j].id = "div"+(j+1); // id для доступа к элементам (по сути, к одному - пустому)
+            elements[j].value = j+1; // value для реализации логики перемещения
+            box.appendChild(element);
+            if ((j + 1) % 4 == 0) {
+                box.appendChild(document.createElement('br')); // разделители, чтобы элементы представляли поле 4х4
+            }
+            var moveCounter = 0;
+            document.getElementById("moveCounter").textContent = moveCounter;
+            var s = elements[j];
+            // пардон за такие костыли, но в два цикла назначить корректные позиции и имена классов почему-то не получаетс
+            // upd: немного пофиксил логику выбора позиции
+            if ((s.value + 3) % 4 == 0) {
+                s.style.left = "50px";
+                s.className = "1"
+            } else if ((s.value + 2) % 4 == 0) {
+                s.style.left = "155px";
+                s.className = "2"
+            } else if ((s.value + 1) % 4 == 0) {
+                s.style.left = "260px";
+                s.className = "3"
+            } else if (s.value % 4 == 0) {
+                s.style.left = "365px";
+                s.className = "4"
+            }
+            if (s.value >= 1 && s.value <= 4) {
+                s.style.top = "50px";
+            } else if (s.value >= 5 && s.value <= 8) {
+                s.style.top = "155px";
+            } else if (s.value >= 9 && s.value <= 12) {
+                s.style.top = "260px";
+            } else if (s.value >= 13 && s.value <= 16) {
+                s.style.top = "365px";
+            }
+
+            (function() {
+                element.addEventListener('click', function() {
+                    var hole = document.getElementById("div16");
+                    // если элемент можно двинуть по горизонтали или по вертикали
+                    if ((this.value - hole.value === 1 && parseInt(this.className - hole.className) === 1) || this.value - hole.value === 4
+                            || (this.value - hole.value === -1 && parseInt(hole.className - this.className) === 1) || this.value - hole.value === -4){
+                        // свапаем их координаты
+                        var tempX = this.getBoundingClientRect().left;
+                        var tempY = this.getBoundingClientRect().top;
+                        this.style.left = hole.getBoundingClientRect().left + "px";
+                        this.style.top = hole.getBoundingClientRect().top + "px";
+                        hole.style.left = tempX + "px";
+                        hole.style.top = tempY + "px";
+                        // и value
+                        var temp = this.value;
+                        this.value = hole.value;
+                        hole.value = temp;
+                        // и имена классов
+                        var tempClass = this.className;
+                        this.className = hole.className;
+                        hole.className = tempClass;
+                        moveCounter++;
+                        document.getElementById("moveCounter").textContent = moveCounter;
+                    }
+                });
+            })();
+        }
+        draw();
+    }
+</script>
+</html>
